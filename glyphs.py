@@ -133,7 +133,13 @@ GLYPH_TABLE = [
         0b0100,
         0b0000,
         0b0100,
-    ]
+    ], [ # * (not that great looking)
+        0b0000,
+        0b0110,
+        0b1111,
+        0b0110,
+        0b0000
+    ], 
 ]
 
 def get_characters():

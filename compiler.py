@@ -4,11 +4,9 @@ from scaffold import Scaffold
 
 def parse_arguments():
     program_description = "Convert BrainFuck code into CHIP-8 assembly instructions"
-    memory_help_text="Memory size allotment for the resident Brainfuck code"
 
     parser = argparse.ArgumentParser(description=program_description)
 
-    parser.add_argument("--memory", "-m", type=int, default=64, help=memory_help_text)
     parser.add_argument("--output", "-o", default="output.ch8")
     parser.add_argument("program", help="Input brainfuck program to convert")
 
@@ -105,7 +103,7 @@ def convert_to_program(output_code):
 
 def main():
     args = parse_arguments()
-    scaffold = Scaffold(args.memory // 2)
+    scaffold = Scaffold()
 
     with open(args.program, "r") as bfCode:
         bf = bfCode.read()
@@ -116,6 +114,10 @@ def main():
     # Create an infinite loop at the end to prevent chip-8 from crashing
     self_loop_code = 0x1000 | (0x200 + len(scaffold.code) * 2)
     scaffold.append([self_loop_code])
+
+    immediate_address = 0xA000 | (0x200 + len(scaffold.code) * 2)
+    for _ in range(5):
+        scaffold.code[scaffold.code.index("IMMEDIATE_ADDRESS")] = immediate_address
 
     output_binary = convert_to_program(scaffold.code)
 

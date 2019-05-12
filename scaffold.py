@@ -9,10 +9,9 @@ import glyphs
 import functions
 
 class Scaffold:
-    def __init__(self, memorySize):
+    def __init__(self):
         # Halve the memory size as it's specified in 8 bits, but each instruction
         # consists of 16 bits.
-        self.memorySize = memorySize // 2
         self.program_offset = 0x200
         self.code, self.offset = self._generateScaffold()
     
@@ -25,7 +24,7 @@ class Scaffold:
 
         # Initialize code with a 0, this will be replaced by a jump when the length of the program is known,
         # as well as room for the tape code to be store in
-        output_code = [0, *[0 for _ in range(self.memorySize)]]
+        output_code = [0]
 
         # Add the custom character glyphs (G-Z, !, Space) to the code
         output_offset["ascii"] = len(output_code)
@@ -45,11 +44,6 @@ class Scaffold:
         output_offset["print"] = len(output_code)
         print_function = functions.PRINT
         output_code.extend(print_function)
-
-        # Configure the newline jump in the print function
-        jump_instruction = output_code.index("JUMP_NEWLINE")
-        jump_destination = self._convert_offset(output_offset["print"]) + (84 * 2)
-        output_code[jump_instruction] = 0x2000 | jump_destination
 
         # Correct the position of letters in ASCII table
         character_glyph_address = self._convert_offset(output_offset["ascii"])
