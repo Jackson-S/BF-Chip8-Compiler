@@ -2,76 +2,83 @@ import argparse
 from scaffold import Scaffold
 
 
-def parseArguments():
-    programDescription = "Convert BrainFuck code into CHIP-8 assembly instructions"
-    parser = argparse.ArgumentParser(description=programDescription)
-    memoryHelp="Memory size allotment for the resident Brainfuck code"
-    parser.add_argument("--memory", "-m", type=int, default=64, help=memoryHelp)
+def parse_arguments():
+    program_description = "Convert BrainFuck code into CHIP-8 assembly instructions"
+    memory_help_text="Memory size allotment for the resident Brainfuck code"
+
+    parser = argparse.ArgumentParser(description=program_description)
+
+    parser.add_argument("--memory", "-m", type=int, default=64, help=memory_help_text)
     parser.add_argument("--output", "-o", default="output.ch8")
     parser.add_argument("program", help="Input brainfuck program to convert")
+
     return parser.parse_args()
 
 
-def convertBrainfuck(bf, currentOffset, scaffold):
+def convert_brainfuck(bf, current_offset, scaffold):
     INSTR_INC = 0x7001 # Add one to V0
     INSTR_CALL = 0x2000 # Stores curr. address on stack and jumps to new address
     INSTR_JMP = 0x1000 # Jumps to new address
+    INSTR_DECR = INSTR_CALL | scaffold.offset["decrement"]
+    INSTR_LEFT = INSTR_CALL | scaffold.offset["left"]
+    INSTR_RIGHT = INSTR_CALL | scaffold.offset["right"]
+    INSTR_PRINT = INSTR_CALL | scaffold.offset["print"]
 
-    outputCode = []
-    currentChar = 0
+    output_code = []
+    current_char = 0
 
-    while currentChar < len(bf):
-        if bf[currentChar] == '+':
-            outputCode.append(INSTR_INC)
-            currentChar += 1
+    while current_char < len(bf):
+        if bf[current_char] == '+':
+            output_code.append(INSTR_INC)
+            current_char += 1
 
-        elif bf[currentChar] == '-':
-            outputCode.append(INSTR_CALL | scaffold.offset["decrement"])
-            currentChar += 1
+        elif bf[current_char] == '-':
+            output_code.append(INSTR_DECR)
+            current_char += 1
 
-        elif bf[currentChar] == '<':
-            outputCode.append(INSTR_CALL | scaffold.offset["left"])
-            currentChar += 1
+        elif bf[current_char] == '<':
+            output_code.append(INSTR_LEFT)
+            current_char += 1
 
-        elif bf[currentChar] == ">":
-            outputCode.append(INSTR_CALL | scaffold.offset["right"])
-            currentChar += 1
+        elif bf[current_char] == ">":
+            output_code.append(INSTR_RIGHT)
+            current_char += 1
 
-        elif bf[currentChar] == ".":
-            outputCode.append(INSTR_CALL | scaffold.offset["print"])
-            currentChar += 1
+        elif bf[current_char] == ".":
+            output_code.append(INSTR_PRINT)
+            current_char += 1
 
-        elif bf[currentChar] == "[":
-            loopEndLocation = findCorrespondingBrace(bf, currentChar)
+        elif bf[current_char] == "[":
+            loop_end_location = find_correspond_brace(bf, current_char)
 
-            loopContents = bf[currentChar+1:loopEndLocation]
+            loop_contents = bf[current_char+1:loop_end_location]
 
-            loopStartAddress = (len(outputCode) * 2) + currentOffset
+            loop_start_address = (len(output_code) * 2) + current_offset
 
-            loopCode = convertBrainfuck(loopContents, loopStartAddress + 4, scaffold)
+            loop_code = convert_brainfuck(loop_contents, loop_start_address + 4, scaffold)
 
-            loopLength = len(loopCode) * 2
+            loop_length = len(loop_code) * 2
 
             # Add 3 * 2 bytes to the length to account for 3 extra instructions
             # added for loop control.
-            loopEndAddress = loopStartAddress + loopLength + 6
+            loop_end_address = loop_start_address + loop_length + 6
 
-            loopCode = [0x4000, # if V0 != 0, skip next instruction
-                        INSTR_JMP | loopEndAddress,
-                        *loopCode,
-                        INSTR_JMP | loopStartAddress]
+            loop_code = [0x4000, # if V0 != 0, skip next instruction
+                        INSTR_JMP | loop_end_address,
+                        *loop_code,
+                        INSTR_JMP | loop_start_address]
 
-            outputCode.extend(loopCode)
+            output_code.extend(loop_code)
 
-            currentChar = loopEndLocation
+            current_char = loop_end_location
 
         else:
-            currentChar += 1
+            current_char += 1
 
-    return outputCode
+    return output_code
 
 
-def findCorrespondingBrace(bf, offset):
+def find_correspond_brace(bf, offset):
     depth = 0
 
     while offset < len(bf):
@@ -87,29 +94,29 @@ def findCorrespondingBrace(bf, offset):
         offset += 1
 
 
-def convertToProgram(outputCode):
+def convert_to_program(output_code):
     program = b''
 
-    for instruction in outputCode:
+    for instruction in output_code:
         program += instruction.to_bytes(2, byteorder="big")
 
     return program
 
 
 def main():
-    args = parseArguments()
+    args = parse_arguments()
     scaffold = Scaffold(args.memory // 2)
 
     with open(args.program, "r") as bfCode:
         bf = bfCode.read()
 
-    convertedCode = convertBrainfuck(bf, scaffold.offset["program"], scaffold)
+    convertedCode = convert_brainfuck(bf, scaffold.offset["program"], scaffold)
     scaffold.appendCode(convertedCode)
 
-    outputBinary = convertToProgram(scaffold.code)
+    output_binary = convert_to_program(scaffold.code)
 
-    with open(args.output, "wb") as outputFile:
-        outputFile.write(outputBinary)
+    with open(args.output, "wb") as output_file:
+        output_file.write(output_binary)
 
 
 if __name__ == "__main__":
