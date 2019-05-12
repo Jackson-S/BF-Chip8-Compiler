@@ -43,18 +43,26 @@ class Scaffold:
 
         # Append the print function to the code
         output_offset["print"] = len(output_code)
-        print_function = functions.PRINT_FUNCTION
+        print_function = functions.PRINT
         output_code.extend(print_function)
 
         # Configure the newline jump in the print function
-        jump_instruction = output_offset["print"] + 82
+        jump_instruction = output_code.index("JUMP_NEWLINE")
         jump_destination = self._convert_offset(output_offset["print"]) + (84 * 2)
-        output_code[jump_instruction] |= jump_destination
+        output_code[jump_instruction] = 0x2000 | jump_destination
 
         # Correct the position of letters in ASCII table
-        glyph_address = output_offset["print"] + 36
-        for index, value in enumerate(range(glyph_address, glyph_address + 44, 2)):
-            output_code[value] |= self._convert_offset(output_offset["ascii"]) + (index * 5)
+        character_glyph_address = self._convert_offset(output_offset["ascii"])
+        space_character = 0xA000 | character_glyph_address
+        output_code[output_code.index("SPACE_REPLACE_ADDRESS")] = space_character
+
+        character_replacement_start = output_code.index("CHARACTER_REPLACE_START_ADDRESS")
+        character_replacement_end = character_replacement_start + (len(glyphs.GLYPH_TABLE) - 1) * 2
+        character_replacement_range = range(character_replacement_start, character_replacement_end, 2)
+
+        for index, address in enumerate(character_replacement_range):
+            character_address = character_glyph_address + ((index + 1) * 5)
+            output_code[address] = 0xA000 | character_address
 
         # Append the shift functions to the code
         output_offset["left"] = len(output_code)
@@ -62,24 +70,17 @@ class Scaffold:
         output_offset["right"] = len(output_code)
         output_code.extend(functions.MEMORY_RIGHT)
 
-        # Append the decrement function to the code
-        output_offset["decrement"] = len(output_code)
-        # Get the location of the jump address to modify later
-        decrement_offset = len(output_code) + 1
-        output_code.extend(functions.DECREMENT)
-        decrement_jump_loc = self._convert_offset(output_offset["decrement"]) + 8
-        output_code[decrement_offset] |= decrement_jump_loc
-
-        # Set the location where program code begins (scaffold ends)
+        # The scaffold code has ended
         output_offset["program"] = len(output_code)
 
         # Set the jump in the init function to the correct address
-        init_jump_location = output_offset["init"] + 7
-        output_code[init_jump_location] |= self._convert_offset(output_offset["program"])
+        init_jump_location = output_code.index("PROGRAM_JUMP")
+        output_code[init_jump_location] = 0x1000 | self._convert_offset(output_offset["program"])
 
+        # Convert all offsets into the chip-8 offset mode (8-bit addressing and 0x200 offset)
         jump_addresses = { x: self._convert_offset(y) for x, y in output_offset.items() }
 
         return output_code, jump_addresses
 
-    def appendCode(self, code):
+    def append(self, code):
         self.code.extend(code)

@@ -19,7 +19,7 @@ def convert_brainfuck(bf, current_offset, scaffold):
     INSTR_INC = 0x7001 # Add one to V0
     INSTR_CALL = 0x2000 # Stores curr. address on stack and jumps to new address
     INSTR_JMP = 0x1000 # Jumps to new address
-    INSTR_DECR = INSTR_CALL | scaffold.offset["decrement"]
+    INSTR_DECR = 0x70FF # Add 255 to V0, equivalent to -1
     INSTR_LEFT = INSTR_CALL | scaffold.offset["left"]
     INSTR_RIGHT = INSTR_CALL | scaffold.offset["right"]
     INSTR_PRINT = INSTR_CALL | scaffold.offset["print"]
@@ -111,7 +111,11 @@ def main():
         bf = bfCode.read()
 
     convertedCode = convert_brainfuck(bf, scaffold.offset["program"], scaffold)
-    scaffold.appendCode(convertedCode)
+    scaffold.append(convertedCode)
+
+    # Create an infinite loop at the end to prevent chip-8 from crashing
+    self_loop_code = 0x1000 | (0x200 + len(scaffold.code) * 2)
+    scaffold.append([self_loop_code])
 
     output_binary = convert_to_program(scaffold.code)
 

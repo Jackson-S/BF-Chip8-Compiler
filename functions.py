@@ -7,10 +7,10 @@ INITIALIZATION = [
     0x6301, # V3 = 1 (X Draw Coords)
     0x6401, # V4 = 1 (Y Draw Coords)
     # Skip to program code
-    0x1000, # Jump to beginning of program code (this will be modified with the correct code start address later)
+    "PROGRAM_JUMP", # Jump to beginning of program code (this will be modified with the correct code start address later)
 ]
 
-PRINT_FUNCTION = [
+PRINT = [
     # Convert into ASCII
     0x8700, # V7 = V0 (Load V0 into a temp reg.)
     # Convert V7 to lowercase (OR with 0x20)
@@ -18,6 +18,7 @@ PRINT_FUNCTION = [
     0x8781, # V7 |= V8
     # Cycle through supported chars to find correct one, then set I to
     # the address of the character's glyph
+    "SPACE_REPLACE_ADDRESS", # Set I to address of space, so if we don't find a character we can just print space.
     0x4730, # Skip if not 0
     0xA000, # Set I to address of 0
     0x4731, # Skip if not 1
@@ -53,7 +54,7 @@ PRINT_FUNCTION = [
     0x4767, # Skip if not g
     # Characters below are not in the builtin font set, so the access method differs
     # The correct addresses for each character is added in later by the program.
-    0xA000, # Set I to address of g
+    "CHARACTER_REPLACE_START_ADDRESS", # Set I to address of g
     0x4768, # Skip if not h
     0xA000, # Set I to address of h
     0x4769, # Skip if not i
@@ -94,18 +95,17 @@ PRINT_FUNCTION = [
     0xA000, # Set I to address of z
     0x4721, # Skip if not !
     0xA000, # Set I to address of !
-    0x4720, # Skip if not Space
-    0xA000, # Set I to address of Space
     # Begin drawing character at I
     0xD345, # Draw character that I points to at X=V3, Y=V4, H=0x05
     0x7305, # V3 += 5 (Increment X offset by 5 for next character)
     0x433D, # Skip V3 != 0x3D (Used to create a new line if necessary)
-    0x1000, # Jump to new line subroutine (OR'd in later)
+    "JUMP_NEWLINE", # Jump to new line subroutine, this address is converted later.
     0x00EE, # Return from print function
+    
     # New line subroutine
     0x6301, # V3 = 0x01 (X value reset to 1)
     0x7406, # V4 += 0x06 (Y Value increased for new line offset)
-    0x00EE, # Return from print function
+    0x00EE, # Return from newline function
 ]
 
 MEMORY_LEFT = [
@@ -133,15 +133,4 @@ MEMORY_RIGHT = [
     0xF21E, # Increment I to new memory offset
     0xF065, # Load V0 with content in I
     0x00EE, # Return from pointer right function
-]
-
-DECREMENT = [
-    0x3000, # Skip if V0 != 0
-    0x1000, # Goto standard sub code (OR'd in later)
-    # If V0 == 0
-    0x60FF, # Set V0 = 0xFF
-    0x00EE, # Return from Decrement
-    # Standard subtract
-    0x8055, # V0 -= 1
-    0x00EE, # Return from Decrement
 ]
