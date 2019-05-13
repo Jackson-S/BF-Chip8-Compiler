@@ -1,10 +1,3 @@
-# V0 = Current character
-# V2 = Memory Offset
-# V3 = X Draw Coord
-# V4 = Y Draw Coord
-# V5 = Register set to 1 for subtracting mem offset
-# V7 = Print number splitter
-# V8 = Scratch Register
 import glyphs
 import functions
 

@@ -1,3 +1,10 @@
+# V0 = Current character on tape
+# V2 = Memory Offset (0xF00 + V2 is memory address of current tape position)
+# V3, V4 = X & Y coordinate for print function respectively.
+# V7, V8, V9 = Temp. Used in print function.
+# Free use:
+# V1, V5, V6, VA, VB, VC, VD, VE
+
 INITIALIZATION = [
     # REGISTER SETUP
     0x6200, # V2 = 0. Register 2 will store the tape index
