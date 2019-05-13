@@ -112,7 +112,8 @@ def main():
     scaffold.append(convertedCode)
 
     # Create an infinite loop at the end to prevent chip-8 from crashing
-    self_loop_code = 0x1000 | (0x200 + len(scaffold.code) * 2)
+    self_loop_address = 0x200 + len(scaffold.code) * 2
+    self_loop_code = 0x1000 | self_loop_address
     scaffold.append([self_loop_code])
 
     output_binary = convert_to_program(scaffold.code)
