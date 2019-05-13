@@ -112,6 +112,22 @@ PRINT = [
     0xA000, # Set I to address of z
     0x4721, # Skip if not !
     0xA000, # Set I to address of !
+    0x4722, # Skip if not "
+    0xA000, # Set I to address of "
+    0x4723, # Skip if not #
+    0xA000, # Set I to address of #
+    0x4724, # Skip if not $
+    0xA000, # Set I to address of $
+    0x4725, # Skip if not %
+    0xA000, # Set I to address of %
+    0x4726, # Skip if not &
+    0xA000, # Set I to address of &
+    0x4727, # Skip if not '
+    0xA000, # Set I to address of '
+    0x4728, # Skip if not (
+    0xA000, # Set I to address of (
+    0x4729, # Skip if not )
+    0xA000, # Set I to address of )
     0x472A, # Skip if not *
     0xA000, # Set I to address of *
 
