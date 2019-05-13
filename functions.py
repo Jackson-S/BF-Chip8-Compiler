@@ -1,28 +1,39 @@
 INITIALIZATION = [
-    0x6200, # V2 = 0 (Memory offset = 0)
-    "IMMEDIATE_ADDRESS", # I = 0x202 (Start of BF tape array)
-    0xF065, # V0 = (&I + V2) (Current char = Tape location)
-    0x6501, # V5 = 1 (Constant to subtract by 1)
-    0x00E0, # Clear the display
+    # REGISTER SETUP
+    0x6200, # V2 = 0. Register 2 will store the tape index
+
+    0xAF00, # I = Tape start address (0xF00), or 0xFFF - 0xFF (last memory address - 256)
+    
+    # Setup X and Y coordinates for drawing.
     0x6301, # V3 = 1 (X Draw Coords)
     0x6401, # V4 = 1 (Y Draw Coords)
-    # Skip to program code
-    "PROGRAM_JUMP", # Jump to beginning of program code (this will be modified with the correct code start address later)
+
+    # Jump to program code. This is added in later.
+    "PROGRAM_JUMP",
 ]
 
+
 PRINT = [
-    # Convert into ASCII
-    0x8700, # V7 = V0 (Load V0 into a temp reg.)
-    0x8A00, # VA = V0
-    # Convert lowercase to uppercase letters (Flip bit 6)
-    0x6861, # V8 = 0x61 (lowercase a)
-    0x6920, # V9 = 0x20, value to sub later to get uppercase letter variant
-    0x8A85, # VA = VA - V8, VF = VA > V8
-    0x3F00, # Skip next line if VA was < 0x61 (lower a)
-    0x8795, # V7 &= V9 (0xDF), makes letters lower case
-    # Cycle through supported chars to find correct one, then set I to
-    # the address of the character's glyph
-    "SPACE_REPLACE_ADDRESS", # Set I to address of space, so if we don't find a character we can just print space.
+    # PREPARATION TO PRINT VALUE
+    # Set up temporary values to be modified
+    0x8700, # V7 = V0 (Will be used as a temp register, as the value may be altered to be uppercase)
+    
+    0x8A00, # VA = V0 (Will be used as a temp register, to check if value is in upper case letter range, 
+            # as this requires a subtraction.)
+    
+    # Check if the character is lowercase and convert it if it is
+    0x6861, # V8 = 0x61 (Load in lowercase a to register 8 to subtract from register 7)
+    0x8A85, # VA = VA - V8, VF = VA > V8 (Equivalent to VF = bool('a' > V8). 
+            # Should return true if value is upper case)
+
+    0x6920, # V9 = 0x20, as (lower case character - 0x20 = Upper case character)
+    0x3F00, # Skip next line if VA was < 'a', i.e. Skip if letter is below lower case range.
+    0x8795, # V7 -= V9 (0x20), Subtract 20 from lower case character to make upper case.
+
+    # LOAD CHARACTER GLYPH ADDRESS INTO REGISTER I
+    "SPACE_REPLACE_ADDRESS", # Set I to address of space, this will act as a default character
+    
+    # These characters exist in the chip-8 rom, so to save memory that representation will be used.
     0x4730, # Skip if not 0
     0xA000, # Set I to address of 0
     0x4731, # Skip if not 1
@@ -55,9 +66,11 @@ PRINT = [
     0xA046, # Set I to address of e
     0x4746, # Skip if not f
     0xA04B, # Set I to address of f
+    
+    # Characters below are not in the builtin font set, so we load in a custom
+    # glyph set. The 0xA000 commands are replaced later with the correct address, which
+    # is determined by the order of appearance in the glyph set.
     0x4747, # Skip if not g
-    # Characters below are not in the builtin font set, so the access method differs
-    # The correct addresses for each character is added in later by the program.
     "CHARACTER_REPLACE_START_ADDRESS", # Set I to address of g
     0x4748, # Skip if not h
     0xA000, # Set I to address of h
@@ -101,46 +114,66 @@ PRINT = [
     0xA000, # Set I to address of !
     0x472A, # Skip if not *
     0xA000, # Set I to address of *
-    # Begin drawing character at I
-    0xD345, # Draw character that I points to at X=V3, Y=V4, H=0x05
+
+
+    # DRAW CHARACTER TO SCREEN
+    # Draws the character at the address loaded into register I to the display,
+    # and takes care of newlines and new pages.
+    0xD345, # Draw the glyph in register I, at location x=V3, y=V4, height=5.
+    
+    # Add offsets for next character draw
     0x7305, # V3 += 5 (Increment X offset by 5 for next character)
-    0x333D, # Skip V3 == 0x3D (Last drawing x coordinate before characters go offscreen)
+    0x333D, # Skips the return if x is at the end of the page (goes into newline code)
     0x00EE, # Return from print function
-    # Create a new line
+    
+    # Set drawing coordinates to new line start position.
     0x6301, # V3 = 0x01 (X value reset to 1)
     0x7406, # V4 += 0x06 (Y Value increased for new line offset)
-    0x341F, # Skip if v4 == 0x25 (6 below the lowest line)
+    
+    0x341F, # Skip if v4 == 0x25. This will go to the new page code if 
+            #the Y value is at the bottom of the display.
     0x00EE, # Return from print
+    
+    # New page setup
     0x00E0, # Clear the display
-    # Wrap Y line around.
-    0x64FB, # Load 0xFB into V4, which will then have 6 added to it, to make 0x01
-    0x7406, # V4 += 0x06 (Y Value increased for new line offset)
+    0x6401, # Load 0x01 into V4, (y value reset to 1)
     0x00EE, # Return from newline function
 ]
 
 MEMORY_LEFT = [
-    # Memory Pointer Left Function
-    # Store previous value in V0 to memory
-    "IMMEDIATE_ADDRESS", # Set I to beginning of memory
+    # Performs the brainfuck "<" operator
+    # Set I back to the correct memory position (as it may be changed by printing)
+    0xAF00, # Set I to beginning of memory
     0xF21E, # Increment I to current memory offset
+
+    # Stores the contents of V0 (the current value at the tape address) to memory
     0xF055, # Store contents of V0 to memory
-    # Begin setting new offset
-    0x8255, # Subtract 1 (in V5) from V2
-    "IMMEDIATE_ADDRESS", # Set I to beginning of memory
+    
+    # Set I to the new offset
+    0x72FF, # Subtract 1 (via wrapping register with += 0xFF) from Register 2 (Tape index register)
+    0xAF00, # Set I to beginning of memory
     0xF21E, # Increment I to new memory offset
+    
+    # Load new value pointed to by register I
     0xF065, # Fill register V0 with new value
     0x00EE, # Return from pointer left function
 ]
 
 MEMORY_RIGHT = [
-    #Store previous value in V0 to memory
-    "IMMEDIATE_ADDRESS", # Set I to beginning of memory
+    # Performs the brainfuck ">" operator
+    # Set I back to the correct memory position (as it may be changed by printing)
+    0xAF00, # Set I to beginning of memory
     0xF21E, # Increment I to current memory offset
+    
+    # Stores the contents of V0 (the current value at the tape address) to memory
     0xF055, # Store contents of V0 to memory
-    # Begin setting new offset
-    0x7201, # V2 (mem offset) += 1
-    "IMMEDIATE_ADDRESS", # Set I to beginning of memory
+    
+    # Set I to the new offset
+    0x7201, # Add 1 to Register 2 (Tape index register)
+    0xAF00, # Set I to beginning of memory
     0xF21E, # Increment I to new memory offset
+    
+    # Load new value pointed to by register I
     0xF065, # Load V0 with content in I
     0x00EE, # Return from pointer right function
 ]

@@ -1,7 +1,7 @@
-# Glyphs for the letters G-Z, and ! as well as space.
+# Glyphs for the letters G-Z, and punctuation.
 # Glyphs for A-Z and 0-9 are supplied by the chip 8 rom.
 GLYPH_TABLE = [
-    [ # Space
+    [ # Space (0x20)
         0b0000,
         0b0000,
         0b0000,
@@ -127,12 +127,12 @@ GLYPH_TABLE = [
         0b0110,
         0b0100,
         0b1111,
-    ], [ # !
+    ], [ # ! (0x21)
         0b0100,
         0b0100,
         0b0100,
         0b0000,
-        0b0100,
+        0b0100
     ], [ # * (not that great looking)
         0b0000,
         0b0110,

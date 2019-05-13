@@ -115,10 +115,6 @@ def main():
     self_loop_code = 0x1000 | (0x200 + len(scaffold.code) * 2)
     scaffold.append([self_loop_code])
 
-    immediate_address = 0xA000 | (0x200 + len(scaffold.code) * 2)
-    for _ in range(5):
-        scaffold.code[scaffold.code.index("IMMEDIATE_ADDRESS")] = immediate_address
-
     output_binary = convert_to_program(scaffold.code)
 
     with open(args.output, "wb") as output_file:
