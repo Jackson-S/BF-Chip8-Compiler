@@ -6,13 +6,11 @@ You can play around with an [online Javascript version on my website.](https://j
 
 ### Limitations
  - Compiled programs *must* fit within 3840 bytes.
-    - An empty file is 424 bytes.
-    - Every occurrence of .<>+- requires 2 bytes.
-    - Every occurrence of [] requires 3 bytes in total.
- - Input code only has 255 tape slots (i.e. ">" loops to 0 after 256 occurrences).
- - Cannot have more than 15 nested loops at a time (this can be worked around in some non-compliant emulators that have a larger stack size).
- - Chip8 runs at *500**hz***, so any programs running on a standard interpreter will be very slow. Like at least 1000x slower than what you expect (not an exaggeration).
- - Does not support input character (,) due to lack of full size keyboard.
+    - An empty file is 424 bytes, each operator character (i.e. one of .<>+-) requires 2 bytes and very loop instruction ([]) requires 3 bytes.
+ - There are 256 tape positions, the tape will loop back to 0 on an overflow.
+ - On most emulators due to stack constraints you can only have 15 nested loops.
+ - Chip8 runs at 500 hertz, so any programs running on a standard interpreter will be very slow.
+ - Programs cannot take any input.
 
 ### Screenshots
 ![Hello World Sample](/samples/hello_world.png)
